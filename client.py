@@ -6,8 +6,6 @@ from debug import log
 
 from tools import TOOLS
 
-MODEL_NAME = "llama-3.3-70b-versatile"
-
 
 class ChatClient:
     """Manages Groq chat interactions with message history."""
@@ -81,7 +79,7 @@ class ChatClient:
         """Convenience method to add an assistant message."""
         self.push_message("assistant", content)
 
-    def create_chat_completion(self, model: str = MODEL_NAME) -> Any:
+    def create_chat_completion(self) -> Any:
         """Call the chat completions API with current message history.
 
         Args:
@@ -90,6 +88,10 @@ class ChatClient:
         Returns:
             Chat completion response from Groq API
         """
+
+        model = os.getenv("MODEL_NAME")
+        if not model:
+            raise RuntimeError("MODEL_NAME is not set in the environment.")
         messages = self.get_messages()
         log(
             f"[log] Sending chat completion request with model={model} and tools={TOOLS}")
@@ -100,32 +102,3 @@ class ChatClient:
             log("[error] chat completion request failed: " + str(e))
             log("[error] messages sent (repr): " + repr(messages))
             raise
-
-
-# Legacy function wrappers for backwards compatibility
-def create_client() -> Groq:
-    """Create a Groq client using the API key from the environment."""
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise RuntimeError("GROQ_API_KEY is not set in the environment.")
-
-    log("[log] Creating Groq client")
-    return Groq(api_key=api_key)
-
-
-def build_messages(system_prompt: str) -> list[dict[str, str]]:
-    """Build the message array for the chat completion request."""
-    log("[log] Building chat messages")
-    return [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": "How much money have I spent this month?"},
-    ]
-
-
-def create_chat_completion(
-    client: Groq, messages: list[dict[str, str]], model: str = MODEL_NAME
-) -> Any:
-    """Call the chat completions API and return the response."""
-    log(
-        f"[log] Sending chat completion request with model={model} and tools={TOOLS}")
-    return client.chat.completions.create(messages=messages, model=model, tools=TOOLS)
