@@ -1,0 +1,1 @@
+Built a lightweight AI Finance Agent to explore how modern AI agents work behind the scenes — from LLM reasoning and function/tool calling to conversation memory and orchestration loops. This project helped me understand the core architecture of agentic systems, prompt engineering, structured tool execution, and real-world AI workflow design using Python and Groq APIs.
