@@ -1,4 +1,5 @@
-from constants import TOOL_GET_ACCOUNT_BALANCE, TOOL_GET_MONTHLY_EXPENSE
+from constants import TOOL_GET_ACCOUNT_BALANCE, TOOL_GET_MONTHLY_EXPENSE, TOOL_ADD_EXPENSE, TOOL_UPDATE_BALANCE
+from debug import log
 from typing import Any
 
 TOOLS = [
@@ -35,13 +36,64 @@ TOOLS = [
                 "required": ["account_id"],
             },
         },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": TOOL_ADD_EXPENSE,
+            "description": "Add a new expense to the user's account.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "The expense category (e.g., 'groceries', 'utilities').",
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "The expense amount in USD.",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional description of the expense.",
+                    }
+                },
+                "required": ["category", "amount"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": TOOL_UPDATE_BALANCE,
+            "description": "Add or remove money from the user's account balance.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "account_id": {
+                        "type": "string",
+                        "description": "The account identifier to update.",
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "The amount in USD to add or remove.",
+                    },
+                    "operation": {
+                        "type": "string",
+                        "enum": ["add", "remove"],
+                        "description": "Whether to add or remove money from the account.",
+                    }
+                },
+                "required": ["account_id", "amount", "operation"],
+            },
+        },
     }
 ]
 
 
 def get_monthly_expense(month: str = "this month") -> dict[str, Any]:
     """Return dummy monthly expense data for the requested month."""
-    print(f"[log] getMonthlyExpense called with month={month}")
+    log(f"[log] getMonthlyExpense called with month={month}")
     dummy_data = {
         "month": month,
         "currency": "USD",
@@ -54,13 +106,13 @@ def get_monthly_expense(month: str = "this month") -> dict[str, Any]:
             {"name": "transportation", "amount": 135.95},
         ],
     }
-    print(f"[log] Returning dummy expense data: {dummy_data}")
+    log(f"[log] Returning dummy expense data: {dummy_data}")
     return dummy_data
 
 
 def get_account_balance(account_id: str) -> dict[str, Any]:
     """Return dummy account balance data for the requested account."""
-    print(f"[log] getAccountBalance called with account_id={account_id}")
+    log(f"[log] getAccountBalance called with account_id={account_id}")
     dummy_balance = {
         "account_id": account_id,
         "currency": "USD",
@@ -68,13 +120,58 @@ def get_account_balance(account_id: str) -> dict[str, Any]:
         "pending": 120.00,
         "last_updated": "2026-05-23T12:00:00Z",
     }
-    print(f"[log] Returning dummy account balance: {dummy_balance}")
+    log(f"[log] Returning dummy account balance: {dummy_balance}")
     return dummy_balance
+
+
+def add_expense(category: str, amount: float, description: str = "") -> dict[str, Any]:
+    """Add a new expense to the user's account."""
+    log(
+        f"[log] addExpense called with category={category}, amount={amount}, description={description}")
+    result = {
+        "status": "success",
+        "message": f"Expense of ${amount:.2f} added to {category}",
+        "category": category,
+        "amount": amount,
+        "description": description,
+        "timestamp": "2026-05-24T12:00:00Z",
+    }
+    log(f"[log] Expense added successfully: {result}")
+    return result
+
+
+def update_balance(account_id: str, amount: float, operation: str) -> dict[str, Any]:
+    """Add or remove money from the user's account balance."""
+    log(
+        f"[log] updateBalance called with account_id={account_id}, amount={amount}, operation={operation}")
+
+    if operation == "add":
+        new_balance = 5230.40 + amount
+        action = "added to"
+    elif operation == "remove":
+        new_balance = 5230.40 - amount
+        action = "removed from"
+    else:
+        raise ValueError(
+            f"Invalid operation: {operation}. Must be 'add' or 'remove'.")
+
+    result = {
+        "status": "success",
+        "message": f"${amount:.2f} {action} account {account_id}",
+        "account_id": account_id,
+        "operation": operation,
+        "amount": amount,
+        "previous_balance": 5230.40,
+        "new_balance": new_balance,
+        "timestamp": "2026-05-24T12:00:00Z",
+    }
+    log(f"[log] Balance updated successfully: {result}")
+    return result
 
 
 def execute_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     """Dispatch tool calls to the matching local implementation."""
-    print(
+    log(
         f"[log] execute_tool called with tool_name={tool_name}, arguments={arguments}")
     if tool_name == TOOL_GET_MONTHLY_EXPENSE:
         month = arguments.get("month", "this month")
@@ -82,5 +179,15 @@ def execute_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if tool_name == TOOL_GET_ACCOUNT_BALANCE:
         account_id = arguments.get("account_id", "unknown")
         return get_account_balance(account_id)
+    if tool_name == TOOL_ADD_EXPENSE:
+        category = arguments.get("category")
+        amount = arguments.get("amount")
+        description = arguments.get("description", "")
+        return add_expense(category, amount, description)
+    if tool_name == TOOL_UPDATE_BALANCE:
+        account_id = arguments.get("account_id")
+        amount = arguments.get("amount")
+        operation = arguments.get("operation")
+        return update_balance(account_id, amount, operation)
 
     raise RuntimeError(f"Unknown tool requested: {tool_name}")

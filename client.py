@@ -2,6 +2,7 @@ import os
 from typing import Any
 
 from groq import Groq
+from debug import log
 
 from tools import TOOLS
 
@@ -18,7 +19,7 @@ class ChatClient:
             {"role": "system", "content": system_prompt}
         ]
         self.groq_client = self._create_client()
-        print("[log] ChatClient initialized")
+        log("[log] ChatClient initialized")
 
     def _create_client(self) -> Groq:
         """Create a Groq client using the API key from the environment."""
@@ -26,7 +27,7 @@ class ChatClient:
         if not api_key:
             raise RuntimeError("GROQ_API_KEY is not set in the environment.")
 
-        print("[log] Creating Groq client")
+        log("[log] Creating Groq client")
         return Groq(api_key=api_key)
 
     def push_message(
@@ -57,19 +58,19 @@ class ChatClient:
 
         self.messages.append(msg)
 
-        print(
+        log(
             f"[log] Message pushed: role={role}, content_len={len(content or '')}"
         )
 
     def append_message(self, message: dict[str, Any]) -> None:
         """Append a raw message dict to the chat history."""
         self.messages.append(message)
-        print(
+        log(
             f"[log] Raw message appended: {message.get('role')} keys={list(message.keys())}")
 
     def get_messages(self) -> list[dict[str, str]]:
         """Return the current message history."""
-        print(f"[log] Retrieving {len(self.messages)} messages")
+        log(f"[log] Retrieving {len(self.messages)} messages")
         return self.messages.copy()
 
     def add_user_message(self, content: str) -> None:
@@ -90,14 +91,14 @@ class ChatClient:
             Chat completion response from Groq API
         """
         messages = self.get_messages()
-        print(
+        log(
             f"[log] Sending chat completion request with model={model} and tools={TOOLS}")
 
         try:
             return self.groq_client.chat.completions.create(messages=messages, model=model, tools=TOOLS, tool_choice="auto", temperature=0)
         except Exception as e:
-            print("[error] chat completion request failed:", e)
-            print("[error] messages sent (repr):", repr(messages))
+            log("[error] chat completion request failed: " + str(e))
+            log("[error] messages sent (repr): " + repr(messages))
             raise
 
 
@@ -108,13 +109,13 @@ def create_client() -> Groq:
     if not api_key:
         raise RuntimeError("GROQ_API_KEY is not set in the environment.")
 
-    print("[log] Creating Groq client")
+    log("[log] Creating Groq client")
     return Groq(api_key=api_key)
 
 
 def build_messages(system_prompt: str) -> list[dict[str, str]]:
     """Build the message array for the chat completion request."""
-    print("[log] Building chat messages")
+    log("[log] Building chat messages")
     return [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": "How much money have I spent this month?"},
@@ -125,6 +126,6 @@ def create_chat_completion(
     client: Groq, messages: list[dict[str, str]], model: str = MODEL_NAME
 ) -> Any:
     """Call the chat completions API and return the response."""
-    print(
+    log(
         f"[log] Sending chat completion request with model={model} and tools={TOOLS}")
     return client.chat.completions.create(messages=messages, model=model, tools=TOOLS)
